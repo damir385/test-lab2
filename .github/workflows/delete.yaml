@@ -1,0 +1,39 @@
+name: Delete Namespace Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      namespace:
+        description: 'Namespace to delete'
+        required: true
+        type: string
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Verify namespace directory exists
+        run: |
+          if [ ! -d "deployments/${{ github.event.inputs.namespace }}" ]; then
+            echo "Error: Namespace directory 'deployments/${{ github.event.inputs.namespace }}' does not exist."
+            exit 1
+          fi
+
+      - name: Remove namespace directory
+        run: |
+          rm -rf deployments/${{ github.event.inputs.namespace }}
+          echo "Removed deployments/${{ github.event.inputs.namespace }} directory"
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: Commit and push changes
+        run: |
+          git add -A deployments/
+          git commit -m "Delete deployment for namespace ${{ github.event.inputs.namespace }}"
+          git push || echo "No changes to commit"

@@ -1,0 +1,63 @@
+name: Deploy Helm Chart
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Chart version to deploy'
+        required: true
+        type: string
+      namespace:
+        description: 'Kubernetes namespace for deployment'
+        required: true
+        type: string
+      replicaCount:
+        description: 'Number of replicas'
+        required: true
+        type: string
+        default: '1'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Create deployment directory
+        run: |
+          # Create namespace directory if it doesn't exist
+          mkdir -p deployments/${{ github.event.inputs.namespace }}
+          
+          # Create Chart.yaml
+          cat > deployments/${{ github.event.inputs.namespace }}/Chart.yaml << EOF
+          apiVersion: v2
+          name: nginx-deployment
+          description: Nginx deployment for ${{ github.event.inputs.namespace }}
+          type: application
+          version: 0.1.0
+          appVersion: "1.0.0"
+          
+          dependencies:
+            - name: nginx
+              version: "${{ github.event.inputs.version }}"
+              repository: "file://../../charts/nginx"
+          EOF
+          
+          # Create values.yaml with custom values
+          cat > deployments/${{ github.event.inputs.namespace }}/values.yaml << EOF
+          nginx:
+            replicaCount: ${{ github.event.inputs.replicaCount }}
+            fullnameOverride: "nginx-${{ github.event.inputs.namespace }}"
+          EOF
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: Commit and push changes
+        run: |
+          git add deployments/${{ github.event.inputs.namespace }}
+          git commit -m "Deploy nginx ${{ github.event.inputs.version }} to ${{ github.event.inputs.namespace }} with ${{ github.event.inputs.replicaCount }} replicas"
+          git push

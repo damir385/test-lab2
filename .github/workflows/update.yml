@@ -1,0 +1,86 @@
+name: Update Namespace Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      namespace:
+        description: 'Namespace to update'
+        required: true
+        type: string
+      version:
+        description: 'New chart version (leave empty to keep current)'
+        required: false
+        type: string
+      replicaCount:
+        description: 'New replica count (leave empty to keep current)'
+        required: false
+        type: string
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Verify namespace directory exists
+        run: |
+          if [ ! -d "deployments/${{ github.event.inputs.namespace }}" ]; then
+            echo "Error: Namespace directory 'deployments/${{ github.event.inputs.namespace }}' does not exist."
+            echo "Use the Deploy workflow to create a new deployment."
+            exit 1
+          fi
+
+      - name: Update Chart.yaml if version changed
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            # Find and update the nginx version in Chart.yaml
+            sed -i '/name: nginx/,/repository:/s/version: "[^"]*"/version: "${{ github.event.inputs.version }}"/' deployments/${{ github.event.inputs.namespace }}/Chart.yaml
+            echo "Updated chart version to ${{ github.event.inputs.version }}"
+          fi
+
+      - name: Update values.yaml if replica count changed
+        run: |
+          if [ -n "${{ github.event.inputs.replicaCount }}" ]; then
+            # Check if values.yaml exists
+            if [ -f "deployments/${{ github.event.inputs.namespace }}/values.yaml" ]; then
+              # Check if replicaCount already exists in the file
+              if grep -q "replicaCount:" deployments/${{ github.event.inputs.namespace }}/values.yaml; then
+                # Update existing replicaCount
+                sed -i 's/replicaCount: [0-9]*/replicaCount: ${{ github.event.inputs.replicaCount }}/' deployments/${{ github.event.inputs.namespace }}/values.yaml
+              else
+                # Add replicaCount if it doesn't exist
+                sed -i '/nginx:/a\  replicaCount: ${{ github.event.inputs.replicaCount }}' deployments/${{ github.event.inputs.namespace }}/values.yaml
+              fi
+            else
+              # Create values.yaml if it doesn't exist
+              mkdir -p deployments/${{ github.event.inputs.namespace }}
+              echo "nginx:" > deployments/${{ github.event.inputs.namespace }}/values.yaml
+              echo "  replicaCount: ${{ github.event.inputs.replicaCount }}" >> deployments/${{ github.event.inputs.namespace }}/values.yaml
+              echo "  fullnameOverride: \"nginx-${{ github.event.inputs.namespace }}\"" >> deployments/${{ github.event.inputs.namespace }}/values.yaml
+            fi
+            echo "Updated replica count to ${{ github.event.inputs.replicaCount }}"
+          fi
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: Commit and push changes
+        run: |
+          git add deployments/${{ github.event.inputs.namespace }}
+          
+          # Build commit message based on what was updated
+          commit_msg="Update deployment for namespace ${{ github.event.inputs.namespace }}:"
+          
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            commit_msg="$commit_msg version=${{ github.event.inputs.version }}"
+          fi
+          
+          if [ -n "${{ github.event.inputs.replicaCount }}" ]; then
+            commit_msg="$commit_msg replicas=${{ github.event.inputs.replicaCount }}"
+          fi
+          
+          git commit -m "$commit_msg" || echo "No changes to commit"
+          git push

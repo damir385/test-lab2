@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nginx-deployments
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/damir385/test-lab2.git
+        revision: main
+        directories:
+          - path: "deployments/*"
+  template:
+    metadata:
+      name: "{{path.basename}}"
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/damir385/test-lab2.git
+        targetRevision: main
+        path: "deployments/{{path.basename}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{path.basename}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - PruneLast=false
+          - PrunePropagationPolicy=foreground
