@@ -34,8 +34,12 @@ jobs:
       - name: Update Chart.yaml if version changed
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
-            # Find and update the nginx version in Chart.yaml
+            # Update the version
             sed -i '/name: nginx/,/repository:/s/version: "[^"]*"/version: "${{ github.event.inputs.version }}"/' deployments/${{ github.event.inputs.namespace }}/Chart.yaml
+          
+            # Update the repository path to include the version
+            sed -i '/name: nginx/,/repository:/s|repository: "file://../../charts/nginx/[^"]*"|repository: "file://../../charts/nginx/${{ github.event.inputs.version }}"|' deployments/${{ github.event.inputs.namespace }}/Chart.yaml
+          
             echo "Updated chart version to ${{ github.event.inputs.version }}"
           fi
 

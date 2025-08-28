@@ -41,7 +41,7 @@ jobs:
           dependencies:
             - name: nginx
               version: "${{ github.event.inputs.version }}"
-              repository: "file://../../charts/nginx"
+              repository: "file://../../charts/nginx/${{ github.event.inputs.version }}"
           EOF
           
           # Create values.yaml with custom values
