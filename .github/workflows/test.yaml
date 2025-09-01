@@ -21,9 +21,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ github.inputs.version }}
-      NAMESPACE: ${{ github.inputs.namespace }}
-      REPLICAS: ${{ github.inputs.replicaCount }}
+      VERSION: ${{ github.event.inputs.version }}
+      NAMESPACE: ${{ github.event.inputs.namespace }}
+      REPLICAS: ${{ github.event.inputs.replicaCount }}
 
     steps:
       - name: Checkout repository
