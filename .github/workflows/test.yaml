@@ -1,0 +1,36 @@
+name: Deploy Helm Chart
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Chart version to deploy'
+        required: true
+        type: string
+      namespace:
+        description: 'Kubernetes namespace for deployment'
+        required: true
+        type: string
+      replicaCount:
+        description: 'Number of replicas'
+        required: true
+        type: string
+        default: '1'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.inputs.version }}
+      NAMESPACE: ${{ github.inputs.namespace }}
+      REPLICAS: ${{ github.inputs.replicaCount }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Debug options
+        run: |
+          echo "Starting deployment workflow simulation ..."
+          echo "Now deploying chart version ${VERSION} to namespace ${NAMESPACE} with replicaset ${REPLICAS}..."
+
