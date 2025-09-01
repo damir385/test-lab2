@@ -29,8 +29,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Load .env values
+        uses: falti/dotenv-action@v1.0.4
+
       - name: Debug options
         run: |
           echo "Starting deployment workflow simulation ..."
           echo "Now deploying chart version ${VERSION} to namespace ${NAMESPACE} with replicaset ${REPLICAS}..."
+          echo "My env value ${MY_VAR}..."
 
